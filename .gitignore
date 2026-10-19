@@ -426,3 +426,6 @@ FodyWeavers.xsd
 
 # Official VS Code C# Dev Kit Extension exclusion
 #*.lscache
+
+# WinUI 3 publish profiles are referenced by the packaging project (no secrets inside)
+!**/Properties/PublishProfiles/*.pubxml
