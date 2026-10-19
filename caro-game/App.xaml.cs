@@ -1,20 +1,9 @@
-﻿using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Navigation;
-using Microsoft.UI.Xaml.Shapes;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.ApplicationModel;
-using Windows.ApplicationModel.Activation;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
+﻿using System;
+using caro_game.Core.Services;
+using caro_game.Services;
+using caro_game.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -35,7 +24,19 @@ namespace caro_game
         public App()
         {
             InitializeComponent();
+            Services = ConfigureServices();
         }
+
+        /// <summary>
+        /// Dependency injection container: pages resolve their view models (and the view models
+        /// their services) from here instead of creating dependencies with "new".
+        /// </summary>
+        public static IServiceProvider Services { get; private set; } = null!;
+
+        /// <summary>
+        /// The main window, used by services that need its XamlRoot (e.g. ContentDialog).
+        /// </summary>
+        public static Window? MainWindow { get; private set; }
 
         /// <summary>
         /// Invoked when the application is launched.
@@ -44,7 +45,21 @@ namespace caro_game
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
             _window = new MainWindow();
+            MainWindow = _window;
             _window.Activate();
+        }
+
+        private static IServiceProvider ConfigureServices()
+        {
+            var services = new ServiceCollection();
+
+            services.AddSingleton<IWinChecker, WinChecker>();
+            services.AddSingleton<IDialogService, DialogService>();
+            services.AddTransient<SetupViewModel>();
+
+            // GameViewModel also needs the GameSettings chosen at runtime,
+            // so GamePage creates it with ActivatorUtilities (settings + services from this container).
+            return services.BuildServiceProvider();
         }
     }
 }

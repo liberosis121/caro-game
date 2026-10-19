@@ -1,0 +1,391 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="caro_game.Views.GamePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:caro_game.ViewModels"
+    mc:Ignorable="d"
+    Loaded="Page_Loaded">
+
+    <Grid
+        x:Name="LayoutRoot"
+        Padding="24,8,24,24"
+        ColumnSpacing="24"
+        RowSpacing="16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Responsive layout. The markup below is the narrow layout:
+             the three side cards share one row above the board.
+             From 1100 epx the WideLayout state moves them into a 320 epx column on the right. -->
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="LayoutStates">
+                <VisualState x:Name="WideLayout">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="1100" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="BoardArea.(Grid.Row)" Value="0" />
+                        <Setter Target="BoardArea.(Grid.RowSpan)" Value="2" />
+                        <Setter Target="SidePanelScroller.(Grid.Column)" Value="1" />
+                        <Setter Target="SidePanelScroller.(Grid.RowSpan)" Value="2" />
+                        <Setter Target="SidePanel.Width" Value="320" />
+                        <Setter Target="SidePanel.RowSpacing" Value="12" />
+                        <Setter Target="StatusGroup.(Grid.ColumnSpan)" Value="3" />
+                        <Setter Target="ScoreCard.(Grid.Row)" Value="1" />
+                        <Setter Target="ScoreCard.(Grid.Column)" Value="0" />
+                        <Setter Target="ScoreCard.(Grid.ColumnSpan)" Value="3" />
+                        <Setter Target="ActionsCard.(Grid.Row)" Value="2" />
+                        <Setter Target="ActionsCard.(Grid.Column)" Value="0" />
+                        <Setter Target="ActionsCard.(Grid.ColumnSpan)" Value="3" />
+                        <Setter Target="UndoShortcutText.Visibility" Value="Visible" />
+                        <Setter Target="NewRoundShortcutText.Visibility" Value="Visible" />
+                        <Setter Target="KeyboardTipText.Visibility" Value="Visible" />
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="NarrowLayout">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="0" />
+                    </VisualState.StateTriggers>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
+        <!-- ===== Board ===== -->
+        <!-- The Viewbox scales the whole n × n board so it always fits the available space. -->
+        <Grid
+            x:Name="BoardArea"
+            Grid.Row="1"
+            Grid.Column="0">
+            <Viewbox Stretch="Uniform" StretchDirection="Both">
+                <Border
+                    Padding="12"
+                    Background="{ThemeResource CaroBoardBackgroundBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                    <Border BorderBrush="{ThemeResource CaroBoardLineBrush}" BorderThickness="1,1,0,0">
+                        <ItemsRepeater
+                            x:Name="BoardRepeater"
+                            AutomationProperties.Name="{x:Bind ViewModel.BoardTitle}"
+                            ItemsSource="{x:Bind ViewModel.Cells}"
+                            TabFocusNavigation="Once"
+                            XYFocusKeyboardNavigation="Enabled">
+                            <ItemsRepeater.Layout>
+                                <UniformGridLayout
+                                    ItemsStretch="None"
+                                    MaximumRowsOrColumns="{x:Bind ViewModel.BoardSize}"
+                                    MinColumnSpacing="0"
+                                    MinItemHeight="40"
+                                    MinItemWidth="40"
+                                    MinRowSpacing="0"
+                                    Orientation="Horizontal" />
+                            </ItemsRepeater.Layout>
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="vm:CellViewModel">
+                                    <Button
+                                        AutomationProperties.Name="{x:Bind AccessibleName, Mode=OneWay}"
+                                        Background="{x:Bind Highlight, Mode=OneWay, Converter={StaticResource CellHighlightToBrushConverter}}"
+                                        Command="{x:Bind PlayCommand}"
+                                        Content="{x:Bind Symbol, Mode=OneWay}"
+                                        Foreground="{x:Bind Owner, Mode=OneWay, Converter={StaticResource PlayerToBrushConverter}}"
+                                        Style="{StaticResource CaroCellButtonStyle}" />
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </Border>
+                </Border>
+            </Viewbox>
+        </Grid>
+
+        <!-- ===== Side panel ===== -->
+        <ScrollViewer
+            x:Name="SidePanelScroller"
+            Grid.Row="0"
+            Grid.Column="0"
+            HorizontalScrollBarVisibility="Disabled"
+            HorizontalScrollMode="Disabled"
+            VerticalScrollBarVisibility="Auto"
+            VerticalScrollMode="Auto">
+            <Grid
+                x:Name="SidePanel"
+                Padding="0,0,0,4"
+                ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Turn / result -->
+                <StackPanel x:Name="StatusGroup" Spacing="12">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Style="{StaticResource SubtitleTextBlockStyle}"
+                            Text="{x:Bind ViewModel.BoardTitle}"
+                            TextTrimming="CharacterEllipsis" />
+                        <Border
+                            Grid.Column="1"
+                            Padding="8,2"
+                            VerticalAlignment="Center"
+                            Background="{ThemeResource AccentFillColorDefaultBrush}"
+                            CornerRadius="12">
+                            <TextBlock
+                                Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Text="{x:Bind ViewModel.RoundText, Mode=OneWay}" />
+                        </Border>
+                    </Grid>
+
+                    <Border Style="{StaticResource CardBorderStyle}">
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="48" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                AutomationProperties.AccessibilityView="Raw"
+                                FontSize="44"
+                                Foreground="{x:Bind ViewModel.StatusPlayer, Mode=OneWay, Converter={StaticResource PlayerToBrushConverter}}"
+                                Style="{StaticResource PlayerSymbolTextStyle}"
+                                Text="{x:Bind ViewModel.StatusSymbol, Mode=OneWay}" />
+                            <StackPanel
+                                Grid.Column="1"
+                                VerticalAlignment="Center"
+                                Spacing="4">
+                                <TextBlock
+                                    x:Name="StatusTitleText"
+                                    AutomationProperties.LiveSetting="Polite"
+                                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                                    Text="{x:Bind ViewModel.StatusTitle, Mode=OneWay}"
+                                    TextWrapping="Wrap" />
+                                <TextBlock
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="{x:Bind ViewModel.StatusDetail, Mode=OneWay}"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Non-blocking result notice: good news does not need a modal dialog. -->
+                    <InfoBar
+                        x:Name="ResultInfoBar"
+                        Title="Ván đấu kết thúc"
+                        IsClosable="False"
+                        IsOpen="{x:Bind ViewModel.IsGameOver, Mode=OneWay}"
+                        Message="{x:Bind ViewModel.ResultMessage, Mode=OneWay}"
+                        Severity="Success">
+                        <InfoBar.ActionButton>
+                            <Button
+                                x:Name="PlayAgainButton"
+                                Command="{x:Bind ViewModel.NewRoundCommand}"
+                                Content="Chơi ván mới" />
+                        </InfoBar.ActionButton>
+                    </InfoBar>
+                </StackPanel>
+
+                <!-- Score of this session -->
+                <Border
+                    x:Name="ScoreCard"
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Style="{StaticResource CardBorderStyle}">
+                    <StackPanel Spacing="12">
+                        <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Tỉ số" />
+                        <Grid ColumnSpacing="12" RowSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="24" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock
+                                FontSize="20"
+                                Foreground="{ThemeResource CaroPlayerXBrush}"
+                                Style="{StaticResource PlayerSymbolTextStyle}"
+                                Text="X" />
+                            <TextBlock
+                                Grid.Column="1"
+                                VerticalAlignment="Center"
+                                Text="{x:Bind ViewModel.PlayerXName}"
+                                TextTrimming="CharacterEllipsis" />
+                            <TextBlock
+                                Grid.Column="2"
+                                Style="{StaticResource BodyStrongTextBlockStyle}"
+                                Text="{x:Bind ViewModel.PlayerXWins, Mode=OneWay}" />
+
+                            <TextBlock
+                                Grid.Row="1"
+                                FontSize="20"
+                                Foreground="{ThemeResource CaroPlayerOBrush}"
+                                Style="{StaticResource PlayerSymbolTextStyle}"
+                                Text="O" />
+                            <TextBlock
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                VerticalAlignment="Center"
+                                Text="{x:Bind ViewModel.PlayerOName}"
+                                TextTrimming="CharacterEllipsis" />
+                            <TextBlock
+                                Grid.Row="1"
+                                Grid.Column="2"
+                                Style="{StaticResource BodyStrongTextBlockStyle}"
+                                Text="{x:Bind ViewModel.PlayerOWins, Mode=OneWay}" />
+
+                            <TextBlock
+                                Grid.Row="2"
+                                FontSize="20"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Style="{StaticResource PlayerSymbolTextStyle}"
+                                Text="=" />
+                            <TextBlock
+                                Grid.Row="2"
+                                Grid.Column="1"
+                                VerticalAlignment="Center"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Text="Hòa" />
+                            <TextBlock
+                                Grid.Row="2"
+                                Grid.Column="2"
+                                Style="{StaticResource BodyStrongTextBlockStyle}"
+                                Text="{x:Bind ViewModel.Draws, Mode=OneWay}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Actions and rules -->
+                <Border
+                    x:Name="ActionsCard"
+                    Grid.Row="0"
+                    Grid.Column="2"
+                    Style="{StaticResource CardBorderStyle}">
+                    <StackPanel Spacing="8">
+                        <Button
+                            x:Name="UndoButton"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch"
+                            AutomationProperties.Name="Hoàn tác nước vừa đi"
+                            Command="{x:Bind ViewModel.UndoCommand}"
+                            KeyboardAcceleratorPlacementMode="Hidden"
+                            ToolTipService.ToolTip="Hoàn tác nước vừa đi (Ctrl+Z)">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Z" Modifiers="Control" />
+                            </Button.KeyboardAccelerators>
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <FontIcon FontSize="16" Glyph="&#xE7A7;" />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Text="Hoàn tác"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock
+                                    x:Name="UndoShortcutText"
+                                    Grid.Column="2"
+                                    VerticalAlignment="Center"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="Ctrl+Z"
+                                    Visibility="Collapsed" />
+                            </Grid>
+                        </Button>
+
+                        <Button
+                            x:Name="NewRoundButton"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch"
+                            AutomationProperties.Name="Ván mới, giữ nguyên tỉ số"
+                            Command="{x:Bind ViewModel.NewRoundCommand}"
+                            KeyboardAcceleratorPlacementMode="Hidden"
+                            ToolTipService.ToolTip="Xóa bàn cờ, giữ nguyên tỉ số (Ctrl+N)">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="N" Modifiers="Control" />
+                            </Button.KeyboardAccelerators>
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <FontIcon FontSize="16" Glyph="&#xE72C;" />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Text="Ván mới"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock
+                                    x:Name="NewRoundShortcutText"
+                                    Grid.Column="2"
+                                    VerticalAlignment="Center"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="Ctrl+N"
+                                    Visibility="Collapsed" />
+                            </Grid>
+                        </Button>
+
+                        <Button
+                            x:Name="BackToSetupButton"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch"
+                            AutomationProperties.Name="Đổi kích thước bàn cờ"
+                            Command="{x:Bind ViewModel.BackToSetupCommand}"
+                            ToolTipService.ToolTip="Quay lại màn hình thiết lập để nhập kích thước khác">
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <FontIcon FontSize="16" Glyph="&#xE713;" />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Text="Đổi kích thước"
+                                    TextTrimming="CharacterEllipsis" />
+                            </Grid>
+                        </Button>
+
+                        <TextBlock
+                            Margin="0,4,0,0"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="{x:Bind ViewModel.RulesDescription}"
+                            TextWrapping="Wrap" />
+                        <TextBlock
+                            x:Name="KeyboardTipText"
+                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Có thể chơi bằng bàn phím: phím mũi tên để di chuyển, Enter hoặc Space để đánh."
+                            TextWrapping="Wrap"
+                            Visibility="Collapsed" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</Page>

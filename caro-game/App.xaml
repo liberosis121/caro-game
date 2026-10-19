@@ -3,14 +3,25 @@
     x:Class="caro_game.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:caro_game.Converters"
     xmlns:local="using:caro_game">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
-                <!-- Other merged dictionaries here -->
+                <ResourceDictionary Source="ms-appx:///Styles/GameStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
-            <!-- Other app resources here -->
+
+            <!-- Converters shared by every page (model value → display value). -->
+            <converters:PlayerToBrushConverter
+                x:Key="PlayerToBrushConverter"
+                NoneBrush="{StaticResource TextFillColorSecondaryBrush}"
+                OBrush="{StaticResource CaroPlayerOBrush}"
+                XBrush="{StaticResource CaroPlayerXBrush}" />
+            <converters:CellHighlightToBrushConverter
+                x:Key="CellHighlightToBrushConverter"
+                LastMoveBrush="{StaticResource CaroLastMoveBrush}"
+                WinningLineBrush="{StaticResource CaroWinningLineBrush}" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

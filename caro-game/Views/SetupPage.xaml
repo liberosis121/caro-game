@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="caro_game.Views.SetupPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Loaded="Page_Loaded"
+    NavigationCacheMode="Enabled">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel
+            MaxWidth="560"
+            Margin="24,8,24,32"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Center"
+            Spacing="24">
+
+            <!-- Heading -->
+            <StackPanel HorizontalAlignment="Center" Spacing="4">
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    FontSize="56"
+                    FontWeight="Bold"
+                    AutomationProperties.AccessibilityView="Raw">
+                    <Run Foreground="{ThemeResource CaroPlayerXBrush}" Text="X" /><Run Foreground="{ThemeResource CaroPlayerOBrush}" Text="O" />
+                </TextBlock>
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    Style="{StaticResource TitleLargeTextBlockStyle}"
+                    Text="Cờ Caro" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Style="{StaticResource BodyTextBlockStyle}"
+                    Text="Hai người chơi lần lượt đặt quân X và O trên cùng một máy."
+                    TextAlignment="Center" />
+            </StackPanel>
+
+            <Border Style="{StaticResource CardBorderStyle}" Padding="24">
+                <StackPanel Spacing="20">
+
+                    <!-- Board size: validated on every keystroke -->
+                    <StackPanel Spacing="8">
+                        <TextBox
+                            x:Name="BoardSizeTextBox"
+                            Header="{x:Bind ViewModel.BoardSizeHeader}"
+                            InputScope="Number"
+                            KeyDown="InputTextBox_KeyDown"
+                            PlaceholderText="Ví dụ: 15"
+                            Text="{x:Bind ViewModel.BoardSizeText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <StackPanel
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            Visibility="{x:Bind ViewModel.HasBoardSizeError, Mode=OneWay}">
+                            <FontIcon
+                                FontSize="14"
+                                Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                Glyph="&#xE783;" />
+                            <TextBlock
+                                x:Name="BoardSizeErrorText"
+                                Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                Style="{StaticResource BodyTextBlockStyle}"
+                                Text="{x:Bind ViewModel.BoardSizeErrorMessage, Mode=OneWay}" />
+                        </StackPanel>
+                        <StackPanel
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            Visibility="{x:Bind ViewModel.IsBoardSizeValid, Mode=OneWay}">
+                            <FontIcon
+                                FontSize="14"
+                                Foreground="{ThemeResource SystemFillColorSuccessBrush}"
+                                Glyph="&#xE73E;" />
+                            <TextBlock
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Style="{StaticResource BodyTextBlockStyle}"
+                                Text="{x:Bind ViewModel.BoardSummary, Mode=OneWay}" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Player names (optional) -->
+                    <StackPanel Spacing="8">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox
+                                Header="Tên người chơi X"
+                                KeyDown="InputTextBox_KeyDown"
+                                MaxLength="20"
+                                PlaceholderText="Người chơi X"
+                                Text="{x:Bind ViewModel.PlayerXName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBox
+                                Grid.Column="1"
+                                Header="Tên người chơi O"
+                                KeyDown="InputTextBox_KeyDown"
+                                MaxLength="20"
+                                PlaceholderText="Người chơi O"
+                                Text="{x:Bind ViewModel.PlayerOName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+                        <StackPanel
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            Visibility="{x:Bind ViewModel.HasNameError, Mode=OneWay}">
+                            <FontIcon
+                                FontSize="14"
+                                Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                Glyph="&#xE783;" />
+                            <TextBlock
+                                Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                Style="{StaticResource BodyTextBlockStyle}"
+                                Text="{x:Bind ViewModel.NameErrorMessage, Mode=OneWay}" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <RadioButtons
+                        Header="Người đi trước"
+                        MaxColumns="2"
+                        SelectedIndex="{x:Bind ViewModel.FirstPlayerIndex, Mode=TwoWay}">
+                        <x:String>Quân X</x:String>
+                        <x:String>Quân O</x:String>
+                    </RadioButtons>
+
+                    <StackPanel Spacing="4">
+                        <ToggleSwitch
+                            Header="Luật chặn hai đầu"
+                            IsOn="{x:Bind ViewModel.BlockBothEnds, Mode=TwoWay}"
+                            OffContent="Tắt"
+                            OnContent="Bật" />
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Khi bật, hàng đủ quân nhưng bị quân đối thủ chặn ở cả hai đầu sẽ không được tính thắng."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="8">
+                        <Button
+                            x:Name="StartButton"
+                            HorizontalAlignment="Stretch"
+                            Command="{x:Bind ViewModel.StartCommand}"
+                            Style="{StaticResource AccentButtonStyle}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontSize="16" Glyph="&#xE768;" />
+                                <TextBlock Text="Tạo bàn cờ và bắt đầu" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock
+                            HorizontalAlignment="Center"
+                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="Mẹo: nhấn Enter trong ô nhập để bắt đầu nhanh." />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
